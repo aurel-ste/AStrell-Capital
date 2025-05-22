@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Hire Purchase Calculator (MUR)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        }
+        .input-highlight {
+            transition: all 0.3s ease;
+        }
+        .input-highlight:focus {
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+        }
+        .result-card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .print-btn, .excel-btn {
+            transition: all 0.3s ease;
+        }
+        .print-btn:hover, .excel-btn:hover {
+            transform: scale(1.05);
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .print-section {
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
+        }
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        }
+        .login-box {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            text-align: center;
+        }
+        .login-icon {
+            font-size: 3rem;
+            color: #2563eb;
+            margin-bottom: 1.5rem;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Section -->
+    <div id="loginSection" class="login-container">
+        <div class="login-box">
+            <i class="fas fa-lock login-icon"></i>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Access Calculator</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 text-left mb-1">Username</label>
+                    <input type="text" id="username" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Enter username" required>
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 text-left mb-1">Password</label>
+                    <input type="password" id="password" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Enter password" required>
+                </div>
+                <div id="errorMessage" class="text-red-500 text-sm hidden">
+                    <i class="fas fa-exclamation-circle mr-1"></i> Invalid username or password
+                </div>
+                <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Calculator Section (initially hidden) -->
+    <div id="calculatorSection" class="hidden">
+        <div class="container mx-auto px-4 py-8">
+            <!-- Header -->
+            <header class="gradient-bg text-white rounded-xl p-6 mb-8 shadow-lg">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold">Hire Purchase Calculator</h1>
+                        <p class="text-blue-100 mt-2">Professional financial tool for hire purchase agreements (MUR)</p>
+                    </div>
+                    <div class="hidden md:block">
+                        <i class="fas fa-calculator text-5xl opacity-20"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Input Form -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-md p-6 no-print">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-user-edit mr-3 text-blue-500"></i> Customer & Product Details
+                    </h2>
+                    
+                    <form id="hpForm" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Customer Information -->
+                            <div>
+                                <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input type="text" id="fullName" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="John Doe" required>
+                            </div>
+                            <div>
+                                <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <input type="tel" id="phoneNumber" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="+230 5 123-4567" required>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                <input type="email" id="email" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="john.doe@example.com" required>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-6">
+                            <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-box-open mr-2 text-blue-500"></i> Product Information
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="productName" class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                                    <input type="text" id="productName" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="e.g., Samsung Galaxy S23" required>
+                                </div>
+                                <div>
+                                    <label for="serialNumber" class="block text-sm font-medium text-gray-700 mb-1">Serial Number</label>
+                                    <input type="text" id="serialNumber" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="SN-123456789" required>
+                                </div>
+                                <div>
+                                    <label for="productPrice" class="block text-sm font-medium text-gray-700 mb-1">Product Price (before VAT)</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500">Rs</span>
+                                        </div>
+                                        <input type="number" id="productPrice" class="pl-10 w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="25,000.00" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="deposit" class="block text-sm font-medium text-gray-700 mb-1">Deposit Amount</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500">Rs</span>
+                                        </div>
+                                        <input type="number" id="deposit" class="pl-10 w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="5,000.00" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="months" class="block text-sm font-medium text-gray-700 mb-1">Payment Term (months)</label>
+                                    <select id="months" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                                        <option value="">Select term</option>
+                                        <option value="6">6 months</option>
+                                        <option value="12">12 months</option>
+                                        <option value="18">18 months</option>
+                                        <option value="24">24 months</option>
+                                        <option value="30">30 months</option>
+                                        <option value="36">36 months</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="registrationFee" class="block text-sm font-medium text-gray-700 mb-1">Registration Fee</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500">Rs</span>
+                                        </div>
+                                        <input type="number" id="registrationFee" class="pl-10 w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="500.00" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="interestRate" class="block text-sm font-medium text-gray-700 mb-1">Interest Rate (%)</label>
+                                    <div class="relative">
+                                        <input type="number" id="interestRate" class="w-full px-4 py-2 rounded-lg border border-gray-300 input-highlight focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="10.5" min="0" step="0.1" value="10.5" required>
+                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                            <span class="text-gray-500">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-4 pt-4">
+                            <button type="reset" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                                <i class="fas fa-redo mr-2"></i> Reset
+                            </button>
+                            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
+                                <i class="fas fa-calculator mr-2"></i> Calculate
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Results Section -->
+                <div class="lg:col-span-1">
+                    <div id="results" class="bg-white rounded-xl shadow-md p-6 print-section hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-semibold text-gray-800 flex items-center">
+                                <i class="fas fa-file-invoice-dollar mr-3 text-blue-500"></i> Payment Summary
+                            </h2>
+                            <div class="flex space-x-2">
+                                <button id="printBtn" class="print-btn px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center text-sm">
+                                    <i class="fas fa-print mr-1"></i> Print
+                                </button>
+                                <button id="excelBtn" class="excel-btn px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center text-sm">
+                                    <i class="fas fa-file-excel mr-1"></i> Excel
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Customer Info -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-medium text-gray-800 mb-2 border-b pb-2">Customer Information</h3>
+                            <div class="space-y-2">
+                                <p><span class="font-medium">Name:</span> <span id="resultName" class="text-gray-700">-</span></p>
+                                <p><span class="font-medium">Phone:</span> <span id="resultPhone" class="text-gray-700">-</span></p>
+                                <p><span class="font-medium">Email:</span> <span id="resultEmail" class="text-gray-700">-</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Product Info -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-medium text-gray-800 mb-2 border-b pb-2">Product Information</h3>
+                            <div class="space-y-2">
+                                <p><span class="font-medium">Product:</span> <span id="resultProduct" class="text-gray-700">-</span></p>
+                                <p><span class="font-medium">Serial No:</span> <span id="resultSerial" class="text-gray-700">-</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Financial Summary -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-medium text-gray-800 mb-2 border-b pb-2">Financial Summary</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span>Product Price:</span>
+                                    <span id="resultPrice" class="font-medium">Rs 0.00</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>VAT (15%):</span>
+                                    <span id="resultVat" class="font-medium">Rs 0.00</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Total Price (incl. VAT):</span>
+                                    <span id="resultTotalPrice" class="font-medium">Rs 0.00</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Deposit Amount:</span>
+                                    <span id="resultDeposit" class="font-medium">Rs 0.00</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Registration Fee:</span>
+                                    <span id="resultRegFee" class="font-medium">Rs 0.00</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Amount Financed:</span>
+                                    <span id="resultFinanced" class="font-medium">Rs 0.00</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Interest Rate:</span>
+                                    <span id="resultInterestRate" class="font-medium">0.0%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Total Interest:</span>
+                                    <span id="resultTotalInterest" class="font-medium">Rs 0.00</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Total Amount Payable:</span>
+                                    <span id="resultTotalPayable" class="font-medium text-blue-600">Rs 0.00</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Monthly Payment:</span>
+                                    <span id="resultMonthlyPayment" class="font-medium text-green-600">Rs 0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Schedule -->
+                        <div id="paymentSchedule" class="hidden">
+                            <h3 class="text-lg font-medium text-gray-800 mb-4 border-b pb-2">Payment Schedule</h3>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Principal</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="scheduleBody" class="bg-white divide-y divide-gray-200">
+                                        <!-- Payment schedule will be inserted here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Login functionality
+            const loginForm = document.getElementById('loginForm');
+            const loginSection = document.getElementById('loginSection');
+            const calculatorSection = document.getElementById('calculatorSection');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                // Check credentials (username: AS, password: 0804)
+                if (username === 'AS' && password === '0804') {
+                    // Successful login
+                    loginSection.classList.add('hidden');
+                    calculatorSection.classList.remove('hidden');
+                } else {
+                    // Failed login
+                    errorMessage.classList.remove('hidden');
+                    loginForm.classList.add('shake');
+                    setTimeout(() => {
+                        loginForm.classList.remove('shake');
+                    }, 500);
+                }
+            });
+
+            // Calculator functionality
+            const hpForm = document.getElementById('hpForm');
+            const resultsSection = document.getElementById('results');
+            const printBtn = document.getElementById('printBtn');
+            const excelBtn = document.getElementById('excelBtn');
+            const paymentSchedule = document.getElementById('paymentSchedule');
+            
+            // Form submission
+            hpForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form values
+                const fullName = document.getElementById('fullName').value;
+                const phoneNumber = document.getElementById('phoneNumber').value;
+                const email = document.getElementById('email').value;
+                const productName = document.getElementById('productName').value;
+                const serialNumber = document.getElementById('serialNumber').value;
+                const productPrice = parseFloat(document.getElementById('productPrice').value);
+                const deposit = parseFloat(document.getElementById('deposit').value);
+                const months = parseInt(document.getElementById('months').value);
+                const registrationFee = parseFloat(document.getElementById('registrationFee').value);
+                const interestRate = parseFloat(document.getElementById('interestRate').value);
+                
+                // Validate inputs
+                if (deposit >= productPrice) {
+                    alert('Deposit amount must be less than product price');
+                    return;
+                }
+                
+                // Calculate financials
+                const vat = productPrice * 0.15;
+                const totalPrice = productPrice + vat;
+                const amountFinanced = totalPrice - deposit + registrationFee;
+                const monthlyInterestRate = interestRate / 100 / 12;
+                const monthlyPayment = (amountFinanced * monthlyInterestRate) / (1 - Math.pow(1 + monthlyInterestRate, -months));
+                const totalInterest = (monthlyPayment * months) - amountFinanced;
+                const totalPayable = amountFinanced + totalInterest;
+                
+                // Update results display
+                document.getElementById('resultName').textContent = fullName;
+                document.getElementById('resultPhone').textContent = phoneNumber;
+                document.getElementById('resultEmail').textContent = email;
+                document.getElementById('resultProduct').textContent = productName;
+                document.getElementById('resultSerial').textContent = serialNumber;
+                document.getElementById('resultPrice').textContent = 'Rs ' + productPrice.toFixed(2);
+                document.getElementById('resultVat').textContent = 'Rs ' + vat.toFixed(2);
+                document.getElementById('resultTotalPrice').textContent = 'Rs ' + totalPrice.toFixed(2);
+                document.getElementById('resultDeposit').textContent = 'Rs ' + deposit.toFixed(2);
+                document.getElementById('resultRegFee').textContent = 'Rs ' + registrationFee.toFixed(2);
+                document.getElementById('resultFinanced').textContent = 'Rs ' + amountFinanced.toFixed(2);
+                document.getElementById('resultInterestRate').textContent = interestRate.toFixed(1) + '%';
+                document.getElementById('resultTotalInterest').textContent = 'Rs ' + totalInterest.toFixed(2);
+                document.getElementById('resultTotalPayable').textContent = 'Rs ' + totalPayable.toFixed(2);
+                document.getElementById('resultMonthlyPayment').textContent = 'Rs ' + monthlyPayment.toFixed(2);
+                
+                // Generate payment schedule
+                generatePaymentSchedule(amountFinanced, monthlyPayment, monthlyInterestRate, months);
+                
+                // Show results
+                resultsSection.classList.remove('hidden');
+                paymentSchedule.classList.remove('hidden');
+            });
+            
+            // Print functionality
+            printBtn.addEventListener('click', function() {
+                window.print();
+            });
+            
+            // Excel export functionality
+            excelBtn.addEventListener('click', function() {
+                exportToExcel();
+            });
+            
+            // Generate payment schedule
+            function generatePaymentSchedule(amountFinanced, monthlyPayment, monthlyInterestRate, months) {
+                const scheduleBody = document.getElementById('scheduleBody');
+                scheduleBody.innerHTML = '';
+                
+                let balance = amountFinanced;
+                
+                for (let i = 1; i <= months; i++) {
+                    const interest = balance * monthlyInterestRate;
+                    const principal = monthlyPayment - interest;
+                    balance -= principal;
+                    
+                    // Ensure balance doesn't go below zero due to rounding
+                    if (i === months) {
+                        balance = 0;
+                    }
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 whitespace-nowrap">${i}</td>
+                        <td class="px-4 py-2 whitespace-nowrap">Rs ${monthlyPayment.toFixed(2)}</td>
+                        <td class="px-4 py-2 whitespace-nowrap">Rs ${principal.toFixed(2)}</td>
+                        <td class="px-4 py-2 whitespace-nowrap">Rs ${interest.toFixed(2)}</td>
+                        <td class="px-4 py-2 whitespace-nowrap">Rs ${balance.toFixed(2)}</td>
+                    `;
+                    scheduleBody.appendChild(row);
+                }
+            }
+            
+            // Export to Excel
+            function exportToExcel() {
+                // Get all the data
+                const fullName = document.getElementById('fullName').value;
+                const phoneNumber = document.getElementById('phoneNumber').value;
+                const email = document.getElementById('email').value;
+                const productName = document.getElementById('productName').value;
+                const serialNumber = document.getElementById('serialNumber').value;
+                const productPrice = parseFloat(document.getElementById('productPrice').value);
+                const deposit = parseFloat(document.getElementById('deposit').value);
+                const months = parseInt(document.getElementById('months').value);
+                const registrationFee = parseFloat(document.getElementById('registrationFee').value);
+                const interestRate = parseFloat(document.getElementById('interestRate').value);
+                
+                // Calculate financials again
+                const vat = productPrice * 0.15;
+                const totalPrice = productPrice + vat;
+                const amountFinanced = totalPrice - deposit + registrationFee;
+                const monthlyInterestRate = interestRate / 100 / 12;
+                const monthlyPayment = (amountFinanced * monthlyInterestRate) / (1 - Math.pow(1 + monthlyInterestRate, -months));
+                const totalInterest = (monthlyPayment * months) - amountFinanced;
+                const totalPayable = amountFinanced + totalInterest;
+                
+                // Create summary data
+                const summaryData = [
+                    ["HIRE PURCHASE QUOTATION", "", "", "", ""],
+                    ["Prepared for:", fullName, "", "Date:", new Date().toLocaleDateString()],
+                    ["", "", "", "", ""],
+                    ["CUSTOMER INFORMATION", "", "", "", ""],
+                    ["Full Name:", fullName, "", "", ""],
+                    ["Phone Number:", phoneNumber, "", "", ""],
+                    ["Email Address:", email, "", "", ""],
+                    ["", "", "", "", ""],
+                    ["PRODUCT INFORMATION", "", "", "", ""],
+                    ["Product Name:", productName, "", "", ""],
+                    ["Serial Number:", serialNumber, "", "", ""],
+                    ["", "", "", "", ""],
+                    ["FINANCIAL SUMMARY", "", "", "", ""],
+                    ["Product Price (excl. VAT):", `Rs ${productPrice.toFixed(2)}`, "", "", ""],
+                    ["VAT (15%):", `Rs ${vat.toFixed(2)}`, "", "", ""],
+                    ["Total Price (incl. VAT):", `Rs ${totalPrice.toFixed(2)}`, "", "", ""],
+                    ["Deposit Amount:", `Rs ${deposit.toFixed(2)}`, "", "", ""],
+                    ["Registration Fee:", `Rs ${registrationFee.toFixed(2)}`, "", "", ""],
+                    ["Amount Financed:", `Rs ${amountFinanced.toFixed(2)}`, "", "", ""],
+                    ["Interest Rate:", `${interestRate.toFixed(1)}%`, "", "", ""],
+                    ["Term:", `${months} months`, "", "", ""],
+                    ["Monthly Payment:", `Rs ${monthlyPayment.toFixed(2)}`, "", "", ""],
+                    ["Total Interest:", `Rs ${totalInterest.toFixed(2)}`, "", "", ""],
+                    ["Total Amount Payable:", `Rs ${totalPayable.toFixed(2)}`, "", "", ""],
+                    ["", "", "", "", ""],
+                    ["PAYMENT SCHEDULE", "", "", "", ""],
+                    ["Month", "Payment", "Principal", "Interest", "Balance"]
+                ];
+                
+                // Generate payment schedule data
+                let balance = amountFinanced;
+                const scheduleData = [];
+                
+                for (let i = 1; i <= months; i++) {
+                    const interest = balance * monthlyInterestRate;
+                    const principal = monthlyPayment - interest;
+                    balance -= principal;
+                    
+                    if (i === months) {
+                        balance = 0;
+                    }
+                    
+                    scheduleData.push([
+                        i,
+                        `Rs ${monthlyPayment.toFixed(2)}`,
+                        `Rs ${principal.toFixed(2)}`,
+                        `Rs ${interest.toFixed(2)}`,
+                        `Rs ${balance.toFixed(2)}`
+                    ]);
+                }
+                
+                // Combine all data
+                const allData = [...summaryData, ...scheduleData];
+                
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(allData);
+                
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Hire Purchase Quote");
+                
+                // Generate file name
+                const fileName = `HP_Quote_${fullName.replace(/ /g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                
+                // Export to Excel
+                XLSX.writeFile(wb, fileName);
+            }
+        });
+    </script>
+</body>
+</html>
